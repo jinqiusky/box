@@ -28,6 +28,7 @@ import com.github.tvbox.osc.bbox.base.App;
 import com.github.tvbox.osc.bbox.base.BaseActivity;
 import com.github.tvbox.osc.bbox.bean.*;
 import com.github.tvbox.osc.bbox.player.controller.LiveController;
+import com.github.tvbox.osc.bbox.server.ControlManager;
 import com.github.tvbox.osc.bbox.ui.adapter.*;
 import com.github.tvbox.osc.bbox.ui.dialog.ApiDialog;
 import com.github.tvbox.osc.bbox.ui.dialog.ApiHistoryDialog;
@@ -323,8 +324,8 @@ public class LivePlayActivity extends BaseActivity {
             }
         });
         // 作为直播播放器需要使用
-        // ApiConfig.get().onlyLoadBaseConfig();
-        // ControlManager.get().startServer();
+        ApiConfig.get().onlyLoadBaseConfig();
+        ControlManager.get().startServer();
         initEpgDateView();
         initEpgListView();
         initDayList();
@@ -334,7 +335,7 @@ public class LivePlayActivity extends BaseActivity {
         initSettingGroupView();
         initSettingItemView();
         initLiveChannelList();
-        initChannelEpgInfoList();
+        // initChannelEpgInfoList();
         initLiveSettingGroupList();
     }
     //获取EPG并存储 // 百川epg  DIYP epg   51zmt epg ------- 自建EPG格式输出格式请参考 51zmt
@@ -386,6 +387,7 @@ public class LivePlayActivity extends BaseActivity {
 
         LOG.d("Epg缓存中" + (liveChannelEpgInfoList.containsKey(channelName)?"包含":"不包含") + channelName);
         if (liveChannelEpgInfoList.isEmpty() || !liveChannelEpgInfoList.containsKey(channelName)) {
+            /*
             ApiConfig.get().getChannelEpgInfo(epgTagName, date, new ApiConfig.EpgInfoParseCallback() {
                 @Override
                 public void success(String paramString) {
@@ -420,6 +422,8 @@ public class LivePlayActivity extends BaseActivity {
                     // showBottomEpg();
                 }
             });
+            */
+            LOG.d("PASS");
         } else {
             List<Epginfo> arrayList = liveChannelEpgInfoList.get(channelName);
             LOG.i("liveChannelEpgInfoList: " + liveChannelEpgInfoList.size() + "\n" + liveChannelEpgInfoList);
@@ -608,6 +612,9 @@ public class LivePlayActivity extends BaseActivity {
             mHandler.removeCallbacks(mConnectTimeoutChangeSourceRun);
             mHandler.removeCallbacks(mUpdateNetSpeedRun);
             super.onBackPressed();
+            // 返回主页
+            Intent intent = new Intent(mContext, HomeActivity.class);
+            LivePlayActivity.this.startActivity(intent);
         }
     }
 
@@ -802,7 +809,7 @@ public class LivePlayActivity extends BaseActivity {
             mChannelGroupView.scrollToPosition(currentChannelGroupIndex);
             mChannelGroupView.setSelection(currentChannelGroupIndex);
             mHandler.postDelayed(mFocusCurrentChannelAndShowChannelList, 200);
-            initChannelEpgInfoList();
+            // initChannelEpgInfoList();
         } else {
             mHandler.removeCallbacks(mHideChannelListRun);
             mHandler.post(mHideChannelListRun);
@@ -1792,12 +1799,14 @@ public class LivePlayActivity extends BaseActivity {
     private void initLiveChannelList() {
         List<LiveChannelGroup> list = ApiConfig.get().getChannelGroupList();
         if (list.isEmpty()) {
-            Toast.makeText(App.getInstance(), "频道列表为空，读取本地文件", Toast.LENGTH_SHORT).show();
-            loadLives();
+            Toast.makeText(App.getInstance(), "频道列表为空", Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
 
         if (list.size() == 1 && list.get(0).getGroupName().startsWith("http://127.0.0.1")) {
+            // Toast.makeText(App.getInstance(), "代理频道列表为空", Toast.LENGTH_SHORT).show();
+            // finish();
             loadProxyLives(list.get(0).getGroupName());
         }
         else {
@@ -1835,6 +1844,12 @@ public class LivePlayActivity extends BaseActivity {
 
     }
 
+    @Override
+    public void finish() {
+        super.finish();
+        jumpActivity(HomeActivity.class);
+    }
+
     public void loadProxyLives(String url) {
         try {
             Uri parsedUrl = Uri.parse(url);
@@ -1850,7 +1865,8 @@ public class LivePlayActivity extends BaseActivity {
             @Override
             public void onError(Response<String> response) {
                 super.onError(response);
-                loadLives();
+                Toast.makeText(App.getInstance(), "直播源请求失败！", Toast.LENGTH_SHORT).show();
+                finish();
             }
 
             @Override
